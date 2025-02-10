@@ -29,7 +29,8 @@ export const register = async(req, res){
             'none':'strict',
             maxAge: 7*24*60*60*1000
 
-        })
+        });
+        return res.json({success:true})
 
     }
     catch(error){
@@ -44,9 +45,48 @@ export const login = async (req, res) =>{
         return res.json({status: false, message: "Email and password are required"})
     }
     try{
+        const user = await userModel.find({email});
+
+        if(!user){
+            return res.json({success: false, message: "Invalid email"})
+        }
+        const isMatch = await bcrypt.compare(password, user.password);
+
+        if(!isMatch){
+            return res.json({status: false, message:"Invalid password"})
+        }
 
     }catch(error){
         return res.json({success: false, message: error.message})
     }
 
+    const token = jwt.sign({id: user._id} , process.env.JWT_SECRET, {expiresIn:'7d'});
+
+        res.cookie('token',token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'producton' ?
+            'none':'strict',
+            maxAge: 7*24*60*60*1000
+
+        })
+        return res.json({success:true});
+
+
+}
+
+export const logout  = async(req, res) =>{
+    try{
+        res.clearCookie('token',{
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: process.env.NODE_ENV === 'producton' ?
+            'none':'strict',
+
+        })
+        return res.json({success:true, message:"Logged Out"})
+
+    } catch(error){
+        return res.json({success: false, message: error.message})
+    }
 }
